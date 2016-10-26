@@ -117,12 +117,12 @@ func (s *Shortcuts) Print() {
 	var prev byte
 	for _, k := range s.Keys {
 		if prev != k.MapTo[0] {
-			cog.Printf("\t%q\n", k.MapTo[0])
+			cog.Printf("\t   %s\n", string(k.MapTo[0]))
 			prev = k.MapTo[0]
 		}
 		fmt.Printf("\t")
-		cor.Printf("%s: %s", k.Ch, k.MapTo)
-		fmt.Println()
+		cor.Printf("%s:", k.Ch)
+		fmt.Printf(" %s\n", k.MapTo)
 	}
 }
 
