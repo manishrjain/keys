@@ -115,15 +115,22 @@ func (s *Shortcuts) Print() {
 	cor := color.New(color.FgRed)
 	cog := color.New(color.FgGreen)
 	var prev byte
+	var count int
 	for _, k := range s.Keys {
 		if prev != k.MapTo[0] {
-			cog.Printf("\t   %s\n", string(k.MapTo[0]))
+			cog.Printf("\n\t--------------------- %s", string(k.MapTo[0]))
 			prev = k.MapTo[0]
+			count = 0
+		}
+		count++
+		if count%2 == 1 {
+			fmt.Println()
 		}
 		fmt.Printf("\t")
 		cor.Printf("%s:", k.Ch)
-		fmt.Printf(" %s\n", k.MapTo)
+		fmt.Printf(" %-20s\t", k.MapTo)
 	}
+	fmt.Println()
 }
 
 // Persist would write out the mappings in YAML format.
