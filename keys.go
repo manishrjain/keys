@@ -81,7 +81,9 @@ func (s *Shortcuts) AutoAssign(mapTo string) {
 	if ok := s.assign(strings.ToUpper(mapTo), mapTo); ok {
 		return
 	}
-	if ok := s.assign("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", mapTo); ok {
+	if ok :=
+		s.assign("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,.?;{}[]|`~!@#$%^&*()",
+			mapTo); ok {
 		return
 	}
 	log.Fatalf("Unable to assign any char for %v\n", mapTo)
@@ -123,7 +125,7 @@ func (s *Shortcuts) Print() {
 			count = 0
 		}
 		count++
-		if count%2 == 1 {
+		if count%3 == 1 {
 			fmt.Println()
 		}
 		fmt.Printf("\t")
