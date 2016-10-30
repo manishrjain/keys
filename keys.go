@@ -13,10 +13,6 @@ import (
 	"github.com/fatih/color"
 )
 
-var (
-	ErrFoundAssignment = fmt.Errorf("Found previous assignment")
-)
-
 type key struct {
 	Ch    string `yaml:"short"`
 	MapTo string `yaml:"mapto"`
@@ -58,6 +54,9 @@ func (s *Shortcuts) index(mapTo string) int {
 
 func (s *Shortcuts) assign(opt string, mapTo string) bool {
 	for _, r := range opt {
+		if r == ' ' {
+			continue
+		}
 		if _, has := s.MapsTo(r); !has {
 			s.Keys = append(s.Keys, key{Ch: string(r), MapTo: mapTo})
 			return true
@@ -89,17 +88,18 @@ func (s *Shortcuts) AutoAssign(mapTo string) {
 	log.Fatalf("Unable to assign any char for %v\n", mapTo)
 }
 
-func (s *Shortcuts) Assign(ch rune, mapTo string) error {
+func (s *Shortcuts) BestEffortAssign(ch rune, mapTo string) {
 	if idx := s.index(mapTo); idx > -1 {
-		return ErrFoundAssignment
+		return
 	}
 	if _, has := s.MapsTo(ch); has {
-		return ErrFoundAssignment
+		s.AutoAssign(mapTo)
+		return
 	}
 	s.dirty = true
 	s.Keys = append(s.Keys, key{Ch: string(ch), MapTo: mapTo})
 	sort.Sort(s)
-	return nil
+	return
 }
 
 func (s *Shortcuts) Validate() {
