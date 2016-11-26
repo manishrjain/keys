@@ -88,7 +88,7 @@ func (s *Shortcuts) AutoAssign(mapTo, label string) {
 	s.dirty = true
 	defer sort.Sort(s)
 
-	if ok := s.assign(mapTo, mapTo, label); ok {
+	if ok := s.assign(strings.ToLower(mapTo), mapTo, label); ok {
 		return
 	}
 	if ok := s.assign(strings.ToUpper(mapTo), mapTo, label); ok {
@@ -127,7 +127,7 @@ func (s *Shortcuts) Validate() {
 	}
 }
 
-func (s *Shortcuts) Print(label string) {
+func (s *Shortcuts) Print(label string, compact bool) {
 	fmt.Println()
 	cor := color.New(color.FgRed)
 	cog := color.New(color.FgGreen)
@@ -139,13 +139,17 @@ func (s *Shortcuts) Print(label string) {
 		}
 
 		if prev != k.MapTo[0] {
-			cog.Printf("\n\t--------------------- %s", string(k.MapTo[0]))
+			fmt.Println()
+			if !compact {
+				cog.Printf("\t--------------------- %s\n", string(k.MapTo[0]))
+			}
 			prev = k.MapTo[0]
 			count = 0
-		}
-		count++
-		if count%3 == 1 {
-			fmt.Println()
+		} else {
+			count++
+			if count%3 == 0 {
+				fmt.Println()
+			}
 		}
 		fmt.Printf("\t")
 		cor.Printf("%s:", k.Ch)
@@ -157,8 +161,10 @@ func (s *Shortcuts) Print(label string) {
 // Persist would write out the mappings in YAML format.
 func (s *Shortcuts) Persist(path string) {
 	if !s.dirty {
+		fmt.Printf("\nUnchanged keyboard shortcuts. Skipping overwrite to %s.\n", path)
 		return
 	}
+	fmt.Printf("\nKeyboard shortcuts changed. Writing to %s.\n", path)
 	data, err := yaml.Marshal(s)
 	if err != nil {
 		log.Fatalf("marshal: %v", err)
