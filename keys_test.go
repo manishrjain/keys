@@ -1,6 +1,7 @@
 package keys
 
 import (
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,4 +57,14 @@ func TestAssign(t *testing.T) {
 	s.Print("")
 	s.Print("g1")
 	s.Print("g2")
+	s.Validate()
+
+	tf, err := ioutil.TempFile("", "keys")
+	assert.NoError(t, err)
+	s.Persist(tf.Name())
+
+	ds := ParseConfig(tf.Name())
+	for i, k := range s.Keys {
+		assert.Equal(t, k, ds.Keys[i])
+	}
 }

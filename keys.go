@@ -22,7 +22,6 @@ type key struct {
 type Shortcuts struct {
 	Keys  []key `yaml:"keys"`
 	dirty bool
-	path  string
 }
 
 func (s *Shortcuts) Len() int          { return len(s.Keys) }
@@ -120,10 +119,11 @@ func (s *Shortcuts) BestEffortAssign(ch rune, mapTo, label string) {
 func (s *Shortcuts) Validate() {
 	m := make(map[string]string)
 	for _, k := range s.Keys {
-		if mapTo, has := m[k.Ch]; has {
+		ck := fmt.Sprintf("%s:%s", k.Ch, k.Label)
+		if mapTo, has := m[ck]; has {
 			log.Fatalf("Same key %q assigned to multiple mappings [%v, %v]\n", k.Ch, k.MapTo, mapTo)
 		}
-		m[k.Ch] = k.MapTo
+		m[ck] = k.MapTo
 	}
 }
 
@@ -155,7 +155,7 @@ func (s *Shortcuts) Print(label string) {
 }
 
 // Persist would write out the mappings in YAML format.
-func (s *Shortcuts) Persist() {
+func (s *Shortcuts) Persist(path string) {
 	if !s.dirty {
 		return
 	}
@@ -164,25 +164,25 @@ func (s *Shortcuts) Persist() {
 		log.Fatalf("marshal: %v", err)
 	}
 
-	if err := ioutil.WriteFile(s.path, data, 0644); err != nil {
+	if err := ioutil.WriteFile(path, data, 0644); err != nil {
 		log.Fatalf("While syncing to key config file: %v", err)
 	}
 }
 
-func ParseConfig(pathConfig string) *Shortcuts {
-	fmt.Printf("Opening file: %v for reading key mappings\n", pathConfig)
-	if _, err := os.Stat(pathConfig); os.IsNotExist(err) {
-		fmt.Printf("File %v doesn't exist. Creating empty shortcuts\n", pathConfig)
-		return &Shortcuts{path: pathConfig}
+func ParseConfig(path string) *Shortcuts {
+	fmt.Printf("Opening file: %v for reading key mappings\n", path)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		fmt.Printf("File %v doesn't exist. Creating empty shortcuts\n", path)
+		return &Shortcuts{}
 	}
 
-	data, err := ioutil.ReadFile(pathConfig)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatalf("Unable to read file: %v. Error: %v", pathConfig, err)
+		log.Fatalf("Unable to read file: %v. Error: %v", path, err)
 	}
-	s := &Shortcuts{path: pathConfig}
+	s := &Shortcuts{}
 	if err := yaml.Unmarshal(data, s); err != nil {
-		log.Fatalf("Unable to unmarshal data for file: %v. Error: %v", pathConfig, err)
+		log.Fatalf("Unable to unmarshal data for file: %v. Error: %v", path, err)
 	}
 	sort.Sort(s)
 	s.Validate()
