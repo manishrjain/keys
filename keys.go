@@ -16,6 +16,7 @@ import (
 type key struct {
 	Ch    string `yaml:"short"`
 	MapTo string `yaml:"mapto"`
+	Label string `yaml:"label"`
 }
 
 type Shortcuts struct {
@@ -24,49 +25,63 @@ type Shortcuts struct {
 	path  string
 }
 
-func (s *Shortcuts) Len() int               { return len(s.Keys) }
-func (s *Shortcuts) Less(i int, j int) bool { return s.Keys[i].MapTo < s.Keys[j].MapTo }
-func (s *Shortcuts) Swap(i int, j int)      { s.Keys[i], s.Keys[j] = s.Keys[j], s.Keys[i] }
+func (s *Shortcuts) Len() int          { return len(s.Keys) }
+func (s *Shortcuts) Swap(i int, j int) { s.Keys[i], s.Keys[j] = s.Keys[j], s.Keys[i] }
+func (s *Shortcuts) Less(i int, j int) bool {
+	ki, kj := s.Keys[i], s.Keys[j]
+	if ki.Label != kj.Label {
+		return ki.Label < kj.Label
+	}
+	return ki.MapTo < kj.MapTo
+}
 
-func (s *Shortcuts) MapsTo(c rune) (string, bool) {
+func (s *Shortcuts) MapsTo(c rune, label string) (string, bool) {
 	ch := string(c)
 	for _, k := range s.Keys {
-		if ch == k.Ch {
+		if ch == k.Ch && label == k.Label {
 			return k.MapTo, true
 		}
 	}
 	return "", false
 }
 
-func (s *Shortcuts) index(mapTo string) int {
+func (s *Shortcuts) index(mapTo, label string) int {
 	if !sort.IsSorted(s) {
 		log.Fatalf("This should be sorted by MapTo %v", s.Keys)
 	}
 
-	idx := sort.Search(len(s.Keys), func(i int) bool {
-		return s.Keys[i].MapTo >= mapTo
+	i := sort.Search(len(s.Keys), func(i int) bool {
+		ki := s.Keys[i]
+		if ki.Label != label {
+			return ki.Label > label
+		}
+		return ki.MapTo >= mapTo
 	})
-	if idx < len(s.Keys) && s.Keys[idx].MapTo == mapTo {
-		return idx
+	if i >= len(s.Keys) {
+		return -1
+	}
+	k := s.Keys[i]
+	if k.Label == label && k.MapTo == mapTo {
+		return i
 	}
 	return -1
 }
 
-func (s *Shortcuts) assign(opt string, mapTo string) bool {
+func (s *Shortcuts) assign(opt, mapTo, label string) bool {
 	for _, r := range opt {
 		if r == ' ' {
 			continue
 		}
-		if _, has := s.MapsTo(r); !has {
-			s.Keys = append(s.Keys, key{Ch: string(r), MapTo: mapTo})
+		if _, has := s.MapsTo(r, label); !has {
+			s.Keys = append(s.Keys, key{Ch: string(r), MapTo: mapTo, Label: label})
 			return true
 		}
 	}
 	return false
 }
 
-func (s *Shortcuts) AutoAssign(mapTo string) {
-	if idx := s.index(mapTo); idx > -1 {
+func (s *Shortcuts) AutoAssign(mapTo, label string) {
+	if idx := s.index(mapTo, label); idx > -1 {
 		// Already assigned to some char. No need to assign again.
 		return
 	}
@@ -74,30 +89,30 @@ func (s *Shortcuts) AutoAssign(mapTo string) {
 	s.dirty = true
 	defer sort.Sort(s)
 
-	if ok := s.assign(mapTo, mapTo); ok {
+	if ok := s.assign(mapTo, mapTo, label); ok {
 		return
 	}
-	if ok := s.assign(strings.ToUpper(mapTo), mapTo); ok {
+	if ok := s.assign(strings.ToUpper(mapTo), mapTo, label); ok {
 		return
 	}
 	if ok :=
 		s.assign("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,.?;{}[]|`~!@#$%^&*()",
-			mapTo); ok {
+			mapTo, label); ok {
 		return
 	}
 	log.Fatalf("Unable to assign any char for %v\n", mapTo)
 }
 
-func (s *Shortcuts) BestEffortAssign(ch rune, mapTo string) {
-	if idx := s.index(mapTo); idx > -1 {
+func (s *Shortcuts) BestEffortAssign(ch rune, mapTo, label string) {
+	if idx := s.index(mapTo, label); idx > -1 {
 		return
 	}
-	if _, has := s.MapsTo(ch); has {
-		s.AutoAssign(mapTo)
+	if _, has := s.MapsTo(ch, label); has {
+		s.AutoAssign(mapTo, label)
 		return
 	}
 	s.dirty = true
-	s.Keys = append(s.Keys, key{Ch: string(ch), MapTo: mapTo})
+	s.Keys = append(s.Keys, key{Ch: string(ch), MapTo: mapTo, Label: label})
 	sort.Sort(s)
 	return
 }
@@ -112,13 +127,17 @@ func (s *Shortcuts) Validate() {
 	}
 }
 
-func (s *Shortcuts) Print() {
+func (s *Shortcuts) Print(label string) {
 	fmt.Println()
 	cor := color.New(color.FgRed)
 	cog := color.New(color.FgGreen)
 	var prev byte
 	var count int
 	for _, k := range s.Keys {
+		if k.Label != label {
+			continue
+		}
+
 		if prev != k.MapTo[0] {
 			cog.Printf("\n\t--------------------- %s", string(k.MapTo[0]))
 			prev = k.MapTo[0]
