@@ -127,6 +127,15 @@ func (s *Shortcuts) Validate() {
 	}
 }
 
+func (s *Shortcuts) HasLabel(label string) bool {
+	for _, k := range s.Keys {
+		if label == k.Label {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Shortcuts) Print(label string, compact bool) {
 	fmt.Println()
 	cor := color.New(color.FgRed)
