@@ -80,6 +80,10 @@ func (s *Shortcuts) assign(opt, mapTo, label string) bool {
 }
 
 func (s *Shortcuts) AutoAssign(mapTo, label string) {
+	if len(mapTo) == 0 {
+		return
+	}
+
 	if idx := s.index(mapTo, label); idx > -1 {
 		// Already assigned to some char. No need to assign again.
 		return
